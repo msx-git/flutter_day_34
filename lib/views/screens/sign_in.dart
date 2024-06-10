@@ -1,92 +1,142 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_day_34/views/screens/sign_up.dart';
 
-class SignIn extends StatefulWidget {
-  const SignIn({super.key});
+import '../../services/auth_http_service.dart';
+import 'home_screen.dart';
+import 'sign_up.dart';
+
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
 
   @override
-  State<SignIn> createState() => _SignInState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _SignInState extends State<SignIn> {
-  final emailController = TextEditingController();
-  final passwordController = TextEditingController();
-
+class _LoginScreenState extends State<LoginScreen> {
   final formKey = GlobalKey<FormState>();
+  final _authHttpServices = AuthHttpServices();
+  bool isLoading = false;
+
+  String? email;
+  String? password;
+
+  void submit() async {
+    if (formKey.currentState!.validate()) {
+      formKey.currentState!.save();
+
+      setState(() {
+        isLoading = true;
+      });
+      try {
+        await _authHttpServices.login(email!, password!);
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (ctx) {
+              return const HomeScreen();
+            },
+          ),
+        );
+      } on Exception catch (e) {
+        String message = e.toString();
+        if (e.toString().contains("EMAIL_EXISTS")) {
+          message = "Email mavjud";
+        }
+        showDialog(
+          context: context,
+          builder: (ctx) {
+            return AlertDialog(
+              title: const Text("Xatolik"),
+              content: Text(message),
+            );
+          },
+        );
+      } finally {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: false,
       appBar: AppBar(
-        title: const Text("Sign In"),
+        title: const Text("Kirish"),
       ),
       body: Form(
         key: formKey,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(18.0),
-              child: TextFormField(
-                controller: emailController,
-                decoration: InputDecoration(
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  labelText: 'Email',
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const FlutterLogo(
+                size: 90,
+              ),
+              const SizedBox(height: 30),
+              TextFormField(
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  labelText: "Elektron pochta",
                 ),
                 validator: (value) {
-                  if (value!.trim().isEmpty) {
-                    return "Enter email!";
+                  if (value == null || value.trim().isEmpty) {
+                    return "Iltimos elektron pochtangizni kiriting";
                   }
-                  return null;
-                },
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(18.0),
-              child: TextFormField(
-                controller: passwordController,
-                decoration: InputDecoration(
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  labelText: 'Password',
-                ),
-                validator: (value) {
-                  if (value!.trim().isEmpty) {
-                    return "Enter password!";
-                  }
-                  return null;
-                },
-              ),
-            ),
 
-            /// Sign In
-            Padding(
-              padding: const EdgeInsets.all(18.0),
-              child: FilledButton(
+                  return null;
+                },
+                onSaved: (newValue) {
+                  //? save email
+                  email = newValue;
+                },
+              ),
+              const SizedBox(height: 10),
+              TextFormField(
+                obscureText: true,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  labelText: "Parol",
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return "Iltimos parolingizni kiriting";
+                  }
+
+                  return null;
+                },
+                onSaved: (newValue) {
+                  //? save password
+                  password = newValue;
+                },
+              ),
+              const SizedBox(height: 20),
+              isLoading
+                  ? const Center(
+                child: CircularProgressIndicator(),
+              )
+                  : FilledButton(
+                onPressed: submit,
+                child: const Text("KIRISH"),
+              ),
+              const SizedBox(height: 20),
+              TextButton(
                 onPressed: () {
-                  if (formKey.currentState!.validate()) {}
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (ctx) {
+                        return const RegisterScreen();
+                      },
+                    ),
+                  );
                 },
-                child: const Text('Sign In'),
+                child: const Text("Ro'yxatdan O'tish"),
               ),
-            ),
-            const SizedBox(height: 20),
-
-            /// Sign Up
-            TextButton(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const SignUp(),
-                ),
-              ),
-              child: const Text('Sign Up'),
-            )
-          ],
+            ],
+          ),
         ),
       ),
     );
